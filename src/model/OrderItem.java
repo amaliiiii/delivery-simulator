@@ -1,13 +1,11 @@
 package model;
 
-/**
- * Одна позиция заказа: например, "Пицца, 2 шт., 450 руб."
- */
+// одна позиция заказа: например, "Пицца, 2 шт., 450 руб."
 public class OrderItem {
 
-    private final String productName;
-    private final int quantity;       // int: целое число
-    private final double price;       // double: число с дробной частью
+    private final String productName;   // название товара
+    private final int quantity;         // количество (целое число)
+    private final double price;         // цена за штуку (дробное число)
 
     public OrderItem(String productName, int quantity, double price) {
         if (productName == null || productName.isBlank()) {
@@ -15,6 +13,10 @@ public class OrderItem {
         }
         if (quantity <= 0) {
             throw new IllegalArgumentException("Количество должно быть больше нуля");
+        }
+        // NaN и бесконечность тоже нельзя: parseDouble пропускает слова NaN и Infinity
+        if (Double.isNaN(price) || Double.isInfinite(price)) {
+            throw new IllegalArgumentException("Цена должна быть обычным числом");
         }
         if (price < 0) {
             throw new IllegalArgumentException("Цена не может быть отрицательной");
@@ -24,7 +26,7 @@ public class OrderItem {
         this.price = price;
     }
 
-    /** Стоимость позиции = количество * цена за штуку. */
+    // стоимость позиции = количество * цена за штуку
     public double getTotal() {
         return quantity * price;
     }
@@ -43,8 +45,7 @@ public class OrderItem {
 
     @Override
     public String toString() {
-        // String.format подставляет значения в шаблон.
-        // %s = строка, %d = целое, %.2f = число с 2 знаками после запятой.
+        // %s - строка, %d - целое, %.2f - дробное с двумя знаками
         return String.format("%s x%d по %.2f = %.2f",
                 productName, quantity, price, getTotal());
     }

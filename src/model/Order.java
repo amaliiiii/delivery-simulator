@@ -8,7 +8,7 @@ import java.util.List;
 public class Order {
 
     private final int id;                      // номер заказа
-    private final Customer customer;           // клиент (композиция: заказ содержит клиента)
+    private final Customer customer;           // клиент (заказ содержит клиента)
     private final String address;              // адрес доставки
     private final List<OrderItem> items = new ArrayList<>();   // позиции заказа
     private DeliveryMethod deliveryMethod;     // способ доставки (пока null, не выбран)
@@ -27,15 +27,22 @@ public class Order {
         this.address = address.trim();
     }
 
+    // ---------- позиции ----------
+
+    // проверка: можно ли сейчас добавлять позиции (если нет, бросает исключение с причиной)
+    public void checkCanAddItems() {
+        if (status != OrderStatus.NEW) {
+            throw new IllegalStateException("Нельзя добавить позиции: заказ уже в статусе \""
+                    + status.getTitle() + "\" (добавлять можно только в новый заказ)");
+        }
+    }
+
     // добавить позицию в заказ
     public void addItem(OrderItem item) {
         if (item == null) {
             throw new IllegalArgumentException("Позиция не может быть пустой");
         }
-        // менять состав можно только пока заказ новый
-        if (status != OrderStatus.NEW) {
-            throw new IllegalStateException("Добавлять позиции можно только в новый заказ");
-        }
+        checkCanAddItems();
         items.add(item);
     }
 
@@ -48,15 +55,26 @@ public class Order {
         return sum;
     }
 
+    // ---------- способ доставки ----------
+
+    // проверка: можно ли сейчас выбирать способ доставки
+    public void checkCanChooseDelivery() {
+        if (status == OrderStatus.NEW) {
+            throw new IllegalStateException("Нельзя выбрать способ доставки: "
+                    + "заказ ещё не подтверждён. Сначала подтвердите его");
+        }
+        if (status != OrderStatus.CONFIRMED) {
+            throw new IllegalStateException("Нельзя выбрать способ доставки: заказ уже в статусе \""
+                    + status.getTitle() + "\"");
+        }
+    }
+
     // выбрать способ доставки
     public void chooseDeliveryMethod(DeliveryMethod method) {
         if (method == null) {
             throw new IllegalArgumentException("Способ доставки не выбран");
         }
-        // менять доставку можно, пока заказ не уехал
-        if (status != OrderStatus.NEW && status != OrderStatus.CONFIRMED) {
-            throw new IllegalStateException("Сейчас менять способ доставки нельзя");
-        }
+        checkCanChooseDelivery();
         this.deliveryMethod = method;
         // если новому способу курьер не нужен, а он уже назначен, отпускаем его
         if (!method.requiresCourier() && courier != null) {
@@ -70,7 +88,7 @@ public class Order {
         if (deliveryMethod == null) {
             return 0;
         }
-        // не проверяем тип доставки: каждый способ считает сам (полиморфизм)
+        // тип доставки не проверяем: каждый способ считает сам (полиморфизм)
         return deliveryMethod.calculateCost(getItemsTotal());
     }
 
@@ -79,28 +97,43 @@ public class Order {
         return getItemsTotal() + getDeliveryCost();
     }
 
+    // ---------- курьер ----------
+
+    // проверка: можно ли сейчас назначать курьера (если нет, бросает исключение с причиной)
+    public void checkCanAssignCourier() {
+        if (status == OrderStatus.NEW) {
+            throw new IllegalStateException("Нельзя назначить курьера: "
+                    + "заказ ещё не подтверждён. Сначала подтвердите его");
+        }
+        if (status != OrderStatus.CONFIRMED) {
+            throw new IllegalStateException("Нельзя назначить курьера: заказ уже в статусе \""
+                    + status.getTitle() + "\"");
+        }
+        if (deliveryMethod == null) {
+            throw new IllegalStateException("Нельзя назначить курьера: "
+                    + "не выбран способ доставки. Сначала выберите его");
+        }
+        // спрашиваем у способа доставки, нужен ли курьер (никаких if по типу)
+        if (!deliveryMethod.requiresCourier()) {
+            throw new IllegalStateException("Нельзя назначить курьера: для способа \""
+                    + deliveryMethod.getName() + "\" курьер не нужен");
+        }
+    }
+
     // назначить курьера
     public void assignCourier(Courier newCourier) {
         if (newCourier == null) {
             throw new IllegalArgumentException("Курьер не выбран");
         }
-        if (deliveryMethod == null) {
-            throw new IllegalStateException("Сначала выберите способ доставки");
-        }
-        // спрашиваем у способа доставки, нужен ли курьер (никаких if по типу)
-        if (!deliveryMethod.requiresCourier()) {
-            throw new IllegalStateException("Для способа \"" + deliveryMethod.getName()
-                    + "\" курьер не нужен");
-        }
-        if (status != OrderStatus.NEW && status != OrderStatus.CONFIRMED) {
-            throw new IllegalStateException("Сейчас менять курьера нельзя");
-        }
+        checkCanAssignCourier();
         newCourier.markBusy();        // если курьер занят, тут вылетит исключение
         if (courier != null) {
             courier.release();        // прошлого курьера освобождаем
         }
         courier = newCourier;
     }
+
+    // ---------- статус ----------
 
     // перевести заказ в новый статус
     public void changeStatus(OrderStatus next) {
@@ -113,17 +146,18 @@ public class Order {
                     + status.getTitle() + "\" в \"" + next.getTitle() + "\"");
         }
         // дальше проверяем условия для конкретных статусов
-        if (next == OrderStatus.CONFIRMED) {
-            if (items.isEmpty()) {
-                throw new IllegalStateException("Нельзя подтвердить заказ без позиций");
-            }
-            if (deliveryMethod == null) {
-                throw new IllegalStateException("Нельзя подтвердить заказ без способа доставки");
-            }
+        if (next == OrderStatus.CONFIRMED && items.isEmpty()) {
+            throw new IllegalStateException("Нельзя подтвердить заказ без позиций. "
+                    + "Сначала добавьте хотя бы одну");
         }
         if (next == OrderStatus.IN_DELIVERY) {
+            if (deliveryMethod == null) {
+                throw new IllegalStateException("Нельзя отправить заказ в доставку: "
+                        + "не выбран способ доставки");
+            }
             if (deliveryMethod.requiresCourier() && courier == null) {
-                throw new IllegalStateException("Нельзя отправить заказ без курьера");
+                throw new IllegalStateException("Нельзя отправить заказ в доставку: "
+                        + "не назначен курьер");
             }
         }
         status = next;   // все проверки прошли, меняем статус
@@ -133,7 +167,8 @@ public class Order {
         }
     }
 
-    // геттеры: только чтение
+    // ---------- геттеры: только чтение ----------
+
     public int getId() {
         return id;
     }

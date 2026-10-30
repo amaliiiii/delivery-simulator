@@ -3,13 +3,12 @@ package model;
 // курьер службы доставки
 public class Courier {
 
-    private final int id;          // номер курьера, чтобы выбирать его в меню
+    private final int id;          // номер курьера
     private final String name;     // имя
     private final String phone;    // телефон
     private boolean busy;          // занят ли сейчас (не final, потому что меняется)
 
     public Courier(int id, String name, String phone) {
-        // проверяем данные, как и у клиента
         if (name == null || name.isBlank()) {
             throw new IllegalArgumentException("Имя курьера не может быть пустым");
         }
@@ -22,7 +21,7 @@ public class Courier {
         this.busy = false;   // новый курьер свободен
     }
 
-    // пометить курьера занятым (метод без public: виден только внутри пакета model)
+    // пометить курьера занятым (без public: виден только внутри пакета model)
     void markBusy() {
         if (busy) {
             throw new IllegalStateException("Курьер " + name + " уже занят");
@@ -41,6 +40,10 @@ public class Courier {
 
     public String getName() {
         return name;
+    }
+
+    public String getPhone() {
+        return phone;
     }
 
     public boolean isBusy() {
