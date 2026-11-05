@@ -23,7 +23,7 @@ public class ConsoleUI {
 
     // главный цикл программы
     public void run() {
-        boolean running = true;   // пока true, программа работает
+        boolean running = true;   
         while (running) {
             printMenu();
             try {
@@ -45,7 +45,7 @@ public class ConsoleUI {
                 // ловим только наши ошибки и показываем понятное сообщение
                 System.out.println("Ошибка: " + e.getMessage());
             } catch (NoSuchElementException e) {
-                // ввод закончился (например, закрыли поток ввода): завершаем программу
+                // ввод закончился: завершаем программу
                 System.out.println("Ввод закончен, программа завершается");
                 running = false;
             }
@@ -53,7 +53,6 @@ public class ConsoleUI {
     }
 
     // ---------- меню ----------
-
     private void printMenu() {
         System.out.println();
         System.out.println("===== Служба доставки =====");
@@ -154,7 +153,7 @@ public class ConsoleUI {
 
         // собираем только те статусы, в которые из текущего можно перейти
         List<OrderStatus> allowed = new ArrayList<>();
-        for (OrderStatus status : OrderStatus.values()) {   // values() = все значения enum
+        for (OrderStatus status : OrderStatus.values()) {
             if (order.getStatus().canChangeTo(status)) {
                 allowed.add(status);
             }
@@ -257,7 +256,7 @@ public class ConsoleUI {
         System.out.println("Действие отменено, возвращаемся в главное меню");
     }
 
-    // красиво печатает один заказ
+    // печатает один заказ
     private void printOrder(Order order) {
         System.out.println("----------------------------------------");
         System.out.println("Заказ №" + order.getId() + " | статус: " + order.getStatus().getTitle());

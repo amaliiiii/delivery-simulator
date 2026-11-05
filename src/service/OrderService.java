@@ -35,8 +35,8 @@ public class OrderService {
 
     // создать новый заказ
     public Order createOrder(String customerName, String customerPhone, String address) {
-        Customer customer = new Customer(customerName, customerPhone);   // тут проверятся имя и телефон
-        Order order = new Order(nextOrderId, customer, address);         // тут проверится адрес
+        Customer customer = new Customer(customerName, customerPhone);   // проверятся имя и телефон
+        Order order = new Order(nextOrderId, customer, address);         // проверится адрес
         nextOrderId++;           // увеличиваем номер только если заказ создался без ошибок
         orders.add(order);
         return order;
